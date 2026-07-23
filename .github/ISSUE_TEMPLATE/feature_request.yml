@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest a reusable journal-research capability.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Research use case
+      description: What user request should the plugin handle?
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected behavior
+      description: Include proposed inputs, outputs, and evidence requirements.
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: Publisher or index examples
+      description: List representative sites without sharing credentials or restricted content.
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Cross-host scope
+      options:
+        - label: The proposal considers Codex and Claude Code behavior.
+          required: true

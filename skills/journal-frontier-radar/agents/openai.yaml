@@ -1,0 +1,4 @@
+interface:
+  display_name: "Journal Frontier Radar"
+  short_description: "Map journal topics and research frontiers"
+  default_prompt: "Use $journal-frontier-radar to analyze recent journal articles, trends, frontiers, and open questions."

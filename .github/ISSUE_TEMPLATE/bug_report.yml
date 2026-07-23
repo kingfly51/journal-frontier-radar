@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a reproducible plugin, audit, or browser-workflow problem.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host
+      options:
+        - Codex
+        - Claude Code
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: Describe what happened and what you expected.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Remove credentials, cookies, private article text, and personal data.
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Relevant audit output
+      render: shell
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed credentials, tokens, cookies, and restricted full text.
+          required: true

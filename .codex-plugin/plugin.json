@@ -1,0 +1,22 @@
+{
+  "name": "journal-frontier-radar",
+  "version": "0.1.0",
+  "description": "Use Kimi WebBridge to inventory and read a journal's recent articles, map topics and keywords, assess research frontiers, and formulate evidence-grounded open scientific questions.",
+  "author": {
+    "name": "Research Tools"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Journal Frontier Radar",
+    "shortDescription": "Audit recent journal topics and scientific frontiers.",
+    "longDescription": "Build a complete, traceable inventory of a user-selected journal over 1 month to 2 years, read every accessible article, quantify its recent focus, and connect those themes to current advances and unresolved scientific questions.",
+    "developerName": "Research Tools",
+    "category": "Research",
+    "capabilities": ["Browser research", "Literature analysis", "Evidence audit"],
+    "defaultPrompt": [
+      "分析一个期刊最近6个月的研究热点与前沿问题。",
+      "审计目标期刊近1年的全部文章并生成趋势报告。",
+      "比较期刊关注热点与领域真实前沿。"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+# Journal Radar generated runs
+.journal-frontier-radar/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Local secrets and temporary files
+.env
+.env.*
+!.env.example
+*.tmp
+*.log
