@@ -54,6 +54,7 @@ def parse_frontmatter(path: Path) -> dict[str, str]:
 def validate_manifests() -> None:
     codex = load_json(".codex-plugin/plugin.json")
     claude = load_json(".claude-plugin/plugin.json")
+    marketplace = load_json(".claude-plugin/marketplace.json")
     for label, manifest in (("Codex", codex), ("Claude Code", claude)):
         if manifest.get("name") != PLUGIN_NAME:
             fail(f"{label} manifest name must be {PLUGIN_NAME!r}")
@@ -66,6 +67,21 @@ def validate_manifests() -> None:
         fail("Codex and Claude Code manifest versions must match")
     if codex.get("skills") != "./skills/":
         fail("Codex manifest must expose ./skills/")
+    if marketplace.get("name") != "journal-frontier-radar-marketplace":
+        fail("Claude Code marketplace has an unexpected name")
+    plugins = marketplace.get("plugins")
+    if not isinstance(plugins, list) or len(plugins) != 1:
+        fail("Claude Code marketplace must contain exactly one plugin")
+    entry = plugins[0]
+    if entry.get("name") != PLUGIN_NAME:
+        fail("Claude Code marketplace plugin name must match")
+    if entry.get("version") != claude.get("version"):
+        fail("Claude Code marketplace and plugin versions must match")
+    source = entry.get("source", {})
+    if source.get("source") != "github" or source.get("repo") != (
+        "kingfly51/journal-frontier-radar"
+    ):
+        fail("Claude Code marketplace must install from the GitHub repository")
 
 
 def validate_skill() -> None:

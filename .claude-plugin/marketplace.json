@@ -1,0 +1,25 @@
+{
+  "name": "journal-frontier-radar-marketplace",
+  "owner": {
+    "name": "kingfly51"
+  },
+  "description": "Research plugins for evidence-traceable journal surveillance and frontier analysis.",
+  "plugins": [
+    {
+      "name": "journal-frontier-radar",
+      "source": {
+        "source": "github",
+        "repo": "kingfly51/journal-frontier-radar"
+      },
+      "description": "Use Kimi WebBridge to audit a journal's recent articles, induce research themes, assess frontiers, and formulate evidence-grounded open questions.",
+      "version": "0.1.1",
+      "category": "research",
+      "tags": [
+        "academic-research",
+        "journal-analysis",
+        "literature-review",
+        "kimi-webbridge"
+      ]
+    }
+  ]
+}

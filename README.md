@@ -86,7 +86,23 @@ python skills/journal-frontier-radar/scripts/webbridge_client.py \
 
 ### Claude Code
 
-克隆仓库并使用本地插件目录启动：
+推荐使用用户级持久安装。安装后直接运行 `claude`，不再需要 `--plugin-dir`：
+
+```bash
+claude plugin marketplace add kingfly51/journal-frontier-radar
+claude plugin install journal-frontier-radar@journal-frontier-radar-marketplace --scope user
+```
+
+更新到仓库中的最新版本：
+
+```bash
+claude plugin marketplace update journal-frontier-radar-marketplace
+claude plugin update journal-frontier-radar@journal-frontier-radar-marketplace --scope user
+```
+
+安装或更新后重新启动 Claude Code，或在现有会话运行 `/reload-plugins`。
+
+开发调试时也可以克隆仓库并临时加载：
 
 ```bash
 git clone https://github.com/kingfly51/journal-frontier-radar.git

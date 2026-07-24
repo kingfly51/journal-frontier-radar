@@ -7,6 +7,10 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Add a self-hosted Claude Code marketplace for persistent user-scope installation.
+
 ## [0.1.1] - 2026-07-24
 
 ### Fixed
