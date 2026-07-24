@@ -6,8 +6,10 @@ from __future__ import annotations
 import json
 import re
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 PLUGIN_NAME = "journal-frontier-radar"
@@ -60,6 +62,8 @@ def validate_manifests() -> None:
             fail(f"{label} manifest has invalid semantic version: {version!r}")
         if not str(manifest.get("description", "")).strip():
             fail(f"{label} manifest description is required")
+    if codex["version"] != claude["version"]:
+        fail("Codex and Claude Code manifest versions must match")
     if codex.get("skills") != "./skills/":
         fail("Codex manifest must expose ./skills/")
 
@@ -87,6 +91,7 @@ def validate_paths_and_placeholders() -> None:
         "CHANGELOG.md",
         "CONTRIBUTING.md",
         "SECURITY.md",
+        "agents/journal-frontier-researcher.md",
         "skills/journal-frontier-radar/references/research-protocol.md",
         "skills/journal-frontier-radar/references/data-contract.md",
         "skills/journal-frontier-radar/references/source-playbook.md",
@@ -98,6 +103,12 @@ def validate_paths_and_placeholders() -> None:
     missing = [relative for relative in required if not (ROOT / relative).is_file()]
     if missing:
         fail(f"missing required files: {', '.join(missing)}")
+
+    agent = (ROOT / "agents" / "journal-frontier-researcher.md").read_text(
+        encoding="utf-8"
+    )
+    if "disallowedTools: WebSearch, WebFetch" not in agent:
+        fail("Claude Code research agent must disable WebSearch and WebFetch")
 
     placeholder = "[" + "TODO:"
     for path in ROOT.rglob("*"):
@@ -136,6 +147,104 @@ def validate_calendar_logic() -> None:
             )
 
 
+def validate_access_audit_and_ledger() -> None:
+    namespace: dict = {"__name__": "journal_radar_validation"}
+    script = ROOT / "skills" / PLUGIN_NAME / "scripts" / "journal_radar.py"
+    exec(compile(script.read_text(encoding="utf-8"), str(script), "exec"), namespace)
+    with tempfile.TemporaryDirectory() as temporary:
+        run_dir = Path(temporary)
+        (run_dir / "config.json").write_text(
+            json.dumps(
+                {
+                    "start_date": "2026-01-01",
+                    "end_date": "2026-07-24",
+                }
+            ),
+            encoding="utf-8",
+        )
+        inventory = [
+            {
+                "article_id": "doi:10.1000/full",
+                "title": "Full text paper",
+                "url": "https://example.org/full",
+                "doi": "10.1000/full",
+                "canonical_date": "2026-02-01",
+                "status": "included",
+                "article_type": "research-article",
+                "discovery_source": "official archive",
+                "access_status": "full_text",
+            },
+            {
+                "article_id": "doi:10.1000/abstract",
+                "title": "Abstract paper",
+                "url": "https://example.org/abstract",
+                "doi": "10.1000/abstract",
+                "canonical_date": "2026-05-01",
+                "status": "included",
+                "article_type": "research-article",
+                "discovery_source": "official archive",
+                "access_status": "abstract_only",
+            },
+        ]
+        notes = [
+            {
+                "article_id": "doi:10.1000/full",
+                "reading_level": "full_text",
+                "source_url": "https://example.org/full",
+                "accessed_at": "2026-07-24T10:00:00+08:00",
+                "sections_read": ["Abstract", "Methods", "Results"],
+                "research_question": "Question",
+                "key_findings": ["Finding"],
+                "open_codes": ["article code"],
+                "topics": ["inductive theme"],
+                "keywords": ["keyword"],
+                "evidence_locations": ["Results"],
+                "confidence": "high",
+            },
+            {
+                "article_id": "doi:10.1000/abstract",
+                "reading_level": "abstract_only",
+                "source_url": "https://example.org/abstract",
+                "accessed_at": "2026-07-24T10:10:00+08:00",
+                "sections_read": ["Abstract"],
+                "research_question": "Question",
+                "key_findings": ["Abstract finding"],
+                "open_codes": ["second code"],
+                "topics": ["inductive theme"],
+                "keywords": ["keyword"],
+                "evidence_locations": ["Abstract"],
+                "confidence": "medium",
+            },
+        ]
+        for name, rows in (
+            ("inventory.jsonl", inventory),
+            ("reading-notes.jsonl", notes),
+        ):
+            (run_dir / name).write_text(
+                "\n".join(json.dumps(row) for row in rows) + "\n",
+                encoding="utf-8",
+            )
+        (run_dir / "discovery-log.jsonl").write_text(
+            json.dumps(
+                {
+                    "url": "https://example.org/archive",
+                    "pagination_complete": True,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        result = namespace["audit_run"](run_dir, final=True)
+        if not result["passed"]:
+            fail(f"valid access fixture failed audit: {result['issues']}")
+        namespace["cmd_ledger"](
+            SimpleNamespace(run_dir=str(run_dir), output=None)
+        )
+        ledger = (run_dir / "access-ledger.md").read_text(encoding="utf-8")
+        if "[全文]" not in ledger or "[摘要]" not in ledger:
+            fail("access ledger omitted full-text or abstract labels")
+
+
 def main() -> int:
     checks = [
         ("plugin manifests", validate_manifests),
@@ -143,6 +252,7 @@ def main() -> int:
         ("required paths and placeholders", validate_paths_and_placeholders),
         ("Python syntax", validate_python),
         ("calendar boundaries", validate_calendar_logic),
+        ("access audit and ledger", validate_access_audit_and_ledger),
     ]
     try:
         for label, check in checks:

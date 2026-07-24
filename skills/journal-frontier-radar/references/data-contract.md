@@ -37,6 +37,8 @@ Required for every record:
   "discovery_source": "official archive",
   "discovery_page": "https://...",
   "access_status": "full_text",
+  "accessed_at": "2026-06-02T10:30:00+08:00",
+  "access_url": "https://...",
   "authors": ["A. Author"],
   "online_date": "2026-05-20",
   "issue_date": "2026-06-01",
@@ -50,7 +52,9 @@ Required for every record:
 
 Allowed `status`: `included`, `excluded`, `uncertain`.
 
-Allowed `access_status`: `full_text`, `abstract_only`, `metadata_only`, `unknown`.
+Allowed `access_status`: `full_text`, `abstract_only`, `metadata_only`, `failed`, `unknown`.
+
+`access_status` describes what the agent actually accessed, not whether the article is nominally open access. `unknown` is permitted during discovery but must be resolved before the final strict audit.
 
 ## `reading-notes.jsonl`
 
@@ -60,6 +64,9 @@ Required for each included article:
 {
   "article_id": "doi:10.xxxx/example",
   "reading_level": "full_text",
+  "source_url": "https://...",
+  "accessed_at": "2026-06-02T10:30:00+08:00",
+  "sections_read": ["Abstract", "Methods", "Results", "Discussion"],
   "research_question": "...",
   "study_design": "...",
   "methods": ["..."],
@@ -68,7 +75,8 @@ Required for each included article:
   "novelty": "...",
   "author_limitations": ["..."],
   "reader_limitations": ["..."],
-  "topics": ["broad > subfield > problem"],
+  "open_codes": ["article-derived phrase", "method or population code"],
+  "topics": ["inductively merged theme"],
   "keywords": ["..."],
   "evidence_locations": ["Results, Fig. 2", "Discussion"],
   "confidence": "high",
@@ -76,11 +84,20 @@ Required for each included article:
 }
 ```
 
-Allowed `reading_level`: `full_text`, `abstract_only`, `metadata_only`.
+Allowed `reading_level`: `full_text`, `abstract_only`, `metadata_only`, `failed`.
 
 Allowed `confidence`: `high`, `medium`, `low`.
 
 Do not store long copied passages. `evidence_locations` should point to sections, figures, tables, or pages.
+
+Access-label rules:
+
+- `full_text`: require a real article/PDF `source_url`, `accessed_at`, and non-empty `sections_read`. Open-access metadata alone is insufficient.
+- `abstract_only`: require the complete abstract source URL; set `sections_read` to `["Abstract"]`.
+- `metadata_only`: do not populate scientific findings that were not present in metadata.
+- `failed`: record the failed URL and reason in `notes`; do not infer content.
+
+Create open codes article by article before forming themes. Populate `topics` only after the corpus-wide strict audit and second-cycle clustering.
 
 ## `frontier-sources.jsonl`
 

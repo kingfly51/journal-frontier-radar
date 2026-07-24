@@ -18,6 +18,8 @@ Use retraction/correction services and publisher notices when a record appears c
 
 Start from the official journal domain. Prefer semantic page snapshots and visible archive controls. Use page evaluation only when needed to extract repetitive metadata or links. Do not bypass access controls, captchas, or paywalls.
 
+Use only Kimi WebBridge. Do not call WebSearch, WebFetch, Fetch, or a generic search/fetch tool. If a publisher-domain safety error appears, stop that tool path and return to the bundled Kimi client.
+
 When an archive uses infinite scroll:
 
 1. Capture current item count and oldest date.
@@ -31,7 +33,7 @@ When a search UI caps results, split queries by month, issue, or article type an
 
 ## Frontier query design
 
-For each major topic, create queries that combine:
+Do not create frontier queries until the complete target-journal corpus has been read, audited, and inductively coded. For each frozen corpus-derived major topic, create queries that combine:
 
 - Core concept and synonyms.
 - `review`, `systematic review`, `meta-analysis`, `consensus`, `roadmap`, or `benchmark`.

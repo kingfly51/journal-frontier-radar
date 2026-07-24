@@ -16,6 +16,8 @@ Open the official journal site first. Locate:
 4. Special collections or supplements that fall in the window.
 5. Corrections, retractions, or expressions of concern linked to included records.
 
+At this stage, do not search for expected subject areas, technologies, diseases, populations, or controversies. Discovery queries may contain only journal identity, date, issue/volume, and article type. Topic-specific search before corpus completion creates confirmation bias and is prohibited.
+
 Traverse every page until the oldest observed canonical date is earlier than the window start. Record each discovery page URL and the visible result count or issue count. Repeat the boundary page once to catch mixed dates.
 
 Cross-check against at least one independent index appropriate to the journal, such as Crossref, PubMed, Europe PMC, DOAJ, Scopus, Web of Science, Dimensions, or the publisher's API/search. An independent index is a completeness check, not automatically the source of truth.
@@ -53,6 +55,15 @@ For each included record, read in this order:
 
 Write the evidence card immediately. Do not postpone all note-taking until synthesis.
 
+Record the evidence actually accessed:
+
+- `full_text`: the article body was opened and relevant sections were read. Record the full-text URL and sections seen.
+- `abstract_only`: the complete abstract was read but the article body was unavailable.
+- `metadata_only`: only bibliographic metadata or title was available; do not record findings.
+- `failed`: the article page could not be accessed or verified.
+
+Open access status alone does not prove that the agent read the full text. Set `full_text` only after recording actual sections or PDF pages seen.
+
 An evidence card must distinguish:
 
 - The research question.
@@ -79,9 +90,14 @@ Run the strict audit. Also perform a browser-level completeness audit:
 
 If the corpus is large, process batches of 20–30 records and rerun the audit after each batch. Do not replace full coverage with a sample because of corpus size.
 
-## 6. Analyze journal attention
+## 6. Derive the topic structure inductively
 
-Use hierarchical topic labels: broad field, subfield, and specific problem. Merge synonyms only when their scientific meaning is equivalent. Keep a mapping of merged labels.
+Do not begin with a fixed topic framework. Use a two-cycle inductive process:
+
+1. First-cycle open coding: after reading each article, assign concise codes grounded in its stated research question, population/model, method, outcome, and claimed contribution. Reuse the article's terminology where possible.
+2. Second-cycle clustering: only after all included articles have reading notes and the strict audit passes, inspect code co-occurrence and semantic similarity, merge defensible synonyms, and form higher-order themes.
+
+Keep a codebook that maps raw article codes to merged themes and records the merge rationale. Permit multi-topic membership and retain meaningful outliers instead of forcing every paper into a major theme.
 
 For every topic report:
 
@@ -94,9 +110,11 @@ For every topic report:
 
 Keywords should combine author keywords, recurring concepts, methods, populations/models, outcomes, and enabling technologies. Report raw count and document frequency. Avoid generic terms such as “study,” “analysis,” and the journal's discipline name unless discriminative.
 
+Do not claim that a topic rose relative to a previous year unless a separate, complete, audited comparison corpus exists. Within-window momentum may compare the earlier and later halves only.
+
 ## 7. Research the broader frontier
 
-Use the journal topics as queries, but do not constrain the frontier evidence to the target journal. For each major topic:
+Begin only after the corpus-derived topic codebook is frozen. Use those journal-derived topics as queries, but do not constrain the frontier evidence to the target journal. For each major topic:
 
 1. Find one recent authoritative review, consensus, roadmap, or benchmark when available.
 2. Find pivotal recent primary studies supporting major advances.

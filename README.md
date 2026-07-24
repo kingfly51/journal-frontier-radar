@@ -63,6 +63,25 @@
 插件不会绕过验证码、付费墙或网站访问控制。无法访问全文的文章会明确标记为
 `abstract_only`，而不是伪装成全文证据。
 
+## 安装 Kimi WebBridge
+
+本插件**不会捆绑** Kimi WebBridge。首次使用前请从官方页面安装浏览器扩展和本地服务：
+
+- [Kimi WebBridge 中文安装页](https://www.kimi.com/zh-cn/features/webbridge)
+- [Kimi WebBridge English](https://www.kimi.com/features/webbridge)
+
+安装后打开浏览器并确认扩展已连接，然后在插件目录运行：
+
+```bash
+python skills/journal-frontier-radar/scripts/webbridge_client.py \
+  --session journal-radar-check \
+  list_tabs
+```
+
+成功时会返回包含 `success` 和 `tabs` 的 JSON。若客户端无法连接，会自动尝试启动本地
+服务一次；再次失败时应先修复或更新 WebBridge，不要改用 Claude Code 的
+`WebSearch`、`WebFetch` 或 `Fetch`。
+
 ## 安装与加载
 
 ### Claude Code
@@ -79,6 +98,10 @@ claude --plugin-dir ./journal-frontier-radar
 ```text
 /journal-frontier-radar:journal-frontier-radar
 ```
+
+完整分析推荐在 Claude Code 的 `/agents` 中选择
+`journal-frontier-radar:journal-frontier-researcher`。该代理明确禁用
+`WebSearch` 和 `WebFetch`，只通过 Kimi WebBridge 访问期刊页面。
 
 Claude Code 插件结构遵循其
 [官方插件规范](https://code.claude.com/docs/en/plugins-reference)。
@@ -135,6 +158,7 @@ Codex 客户端提供的“添加本地插件/marketplace”入口注册本仓�
         ├── frontier-sources.jsonl
         ├── discovery-log.jsonl
         ├── metrics.json
+        ├── access-ledger.md
         └── report.md
 ```
 
@@ -147,6 +171,7 @@ Codex 客户端提供的“添加本地插件/marketplace”入口注册本仓�
 | `frontier-sources.jsonl` | 期刊外部综述、共识、基准、原始研究和反面证据 |
 | `discovery-log.jsonl` | archive、issue、搜索页和独立索引的覆盖证据 |
 | `metrics.json` | 主题/关键词文档频率与时间动量 |
+| `access-ledger.md` | 每篇文章的全文、摘要、仅元数据或访问失败标识 |
 | `report.md` | 最终综合报告 |
 
 详细字段见
@@ -179,6 +204,13 @@ python skills/journal-frontier-radar/scripts/journal_radar.py metrics \
   .journal-frontier-radar/runs/<run-name>
 ```
 
+生成必须纳入报告的逐篇访问台账：
+
+```bash
+python skills/journal-frontier-radar/scripts/journal_radar.py ledger \
+  .journal-frontier-radar/runs/<run-name>
+```
+
 Kimi WebBridge 客户端示例：
 
 ```bash
@@ -191,6 +223,9 @@ python skills/journal-frontier-radar/scripts/webbridge_client.py \
 ## 质量边界
 
 - “全部文章”必须由发现日志和数量核对支持。
+- 先完成文章全集和逐篇阅读，再从文章开放编码中归纳主题；禁止预设主题框架。
+- `[全文]` 表示实际打开并阅读文章正文，不等同于文章被标记为 Open Access。
+- 最终报告必须逐篇显示 `[全文]`、`[摘要]`、`[仅元数据]` 或 `[访问失败]`。
 - 标题不能作为研究结论的证据。
 - 关键词频率不等于科学重要性。
 - 发文量不等于科学或临床有效性。
@@ -198,6 +233,32 @@ python skills/journal-frontier-radar/scripts/webbridge_client.py \
 - 大语料可以分批处理，但不能静默改为抽样。
 - 预印本、仅摘要来源、争议证据和推断必须明确标记。
 - 任何开放问题都必须能追溯到具体文章或前沿来源。
+- 未建立独立、完整、已审计的往年语料时，不得声称“较上一年上升”或“达到新高”。
+
+## 常见问题
+
+### `Unable to verify if domain ... is safe to fetch`
+
+这说明 Claude Code 调用了内置 `Fetch`，而不是 Kimi WebBridge。停止当前运行，不要继续
+用 Web Search 补文章。请依次检查：
+
+1. 已加载最新版插件；
+2. Kimi WebBridge 连通性命令成功；
+3. 在 `/agents` 中使用 `journal-frontier-radar:journal-frontier-researcher`；
+4. 在一个新 Claude Code 会话中重新运行。
+
+新版插件规定：Kimi 不可用时必须停止，不能静默退回到 WebSearch/WebFetch。
+
+### 报告没有逐篇全文/摘要标识
+
+检查运行目录是否存在 `inventory.jsonl`、`reading-notes.jsonl` 和
+`access-ledger.md`。如果只有一个最终 Markdown，说明执行契约没有完成，该报告不能
+视为全量、可审计结果。重新运行插件，并在最终交付前执行：
+
+```bash
+python skills/journal-frontier-radar/scripts/journal_radar.py audit \
+  .journal-frontier-radar/runs/<run-name> --strict --final
+```
 
 ## 插件结构
 
@@ -205,6 +266,7 @@ python skills/journal-frontier-radar/scripts/webbridge_client.py \
 journal-frontier-radar/
 ├── .claude-plugin/plugin.json
 ├── .codex-plugin/plugin.json
+├── agents/journal-frontier-researcher.md
 ├── skills/journal-frontier-radar/
 │   ├── SKILL.md
 │   ├── agents/openai.yaml

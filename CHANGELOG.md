@@ -7,6 +7,21 @@ and this project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-24
+
+### Fixed
+
+- Prohibit Claude Code WebSearch, WebFetch, and Fetch fallbacks during journal research.
+- Add a Claude Code research agent with built-in WebSearch/WebFetch disabled.
+- Require a successful Kimi WebBridge preflight before discovery.
+- Require article-level full-text, abstract-only, metadata-only, or failed labels.
+- Distinguish actual full-text reading from nominal open-access status.
+- Generate a mandatory access ledger with source URLs and article IDs.
+- Reject missing access evidence, conflicting access labels, and findings inferred from metadata.
+- Require topics to be induced from article-level open codes after corpus audit.
+- Prohibit unsupported year-over-year trend claims without an audited comparison corpus.
+- Expand README installation and troubleshooting guidance for Kimi WebBridge.
+
 ## [0.1.0] - 2026-07-23
 
 ### Added
@@ -22,5 +37,6 @@ and this project uses [Semantic Versioning](https://semver.org/).
 - Evidence rules for separating journal attention from the broader field.
 - Report template for trends, frontiers, open questions, and appendices.
 
-[Unreleased]: https://github.com/kingfly51/journal-frontier-radar/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/kingfly51/journal-frontier-radar/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/kingfly51/journal-frontier-radar/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/kingfly51/journal-frontier-radar/releases/tag/v0.1.0

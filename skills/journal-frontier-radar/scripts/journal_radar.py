@@ -28,11 +28,22 @@ REQUIRED_INVENTORY = {
 REQUIRED_NOTE = {
     "article_id",
     "reading_level",
+    "source_url",
+    "accessed_at",
+    "sections_read",
     "research_question",
     "key_findings",
-    "topics",
+    "open_codes",
     "keywords",
+    "evidence_locations",
     "confidence",
+}
+READING_LEVELS = {"full_text", "abstract_only", "metadata_only", "failed"}
+ACCESS_LABELS = {
+    "full_text": "[全文]",
+    "abstract_only": "[摘要]",
+    "metadata_only": "[仅元数据]",
+    "failed": "[访问失败]",
 }
 
 
@@ -143,13 +154,17 @@ def validate_required(
     return issues
 
 
-def audit_run(run_dir: Path) -> dict[str, Any]:
+def audit_run(run_dir: Path, final: bool = False) -> dict[str, Any]:
     config = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
     inventory = read_jsonl(run_dir / "inventory.jsonl")
     notes = read_jsonl(run_dir / "reading-notes.jsonl")
     discovery = read_jsonl(run_dir / "discovery-log.jsonl")
     issues = validate_required(inventory, REQUIRED_INVENTORY, "inventory")
     issues += validate_required(notes, REQUIRED_NOTE, "reading note")
+    if final:
+        for index, note in enumerate(notes, 1):
+            if not note.get("topics"):
+                issues.append(f"final reading note row {index} has no merged topics")
 
     included = [row for row in inventory if row.get("status") == "included"]
     included_ids = [str(row.get("article_id", "")) for row in included]
@@ -193,6 +208,53 @@ def audit_run(run_dir: Path) -> dict[str, Any]:
         for row in notes
         if row.get("article_id") in set(included_ids)
     )
+    note_by_id = {
+        str(row.get("article_id", "")): row
+        for row in notes
+        if str(row.get("article_id", ""))
+    }
+    access_conflicts: list[str] = []
+    invalid_access_labels: list[str] = []
+    incomplete_access_evidence: list[str] = []
+    unsupported_findings: list[str] = []
+    for article in included:
+        article_id = str(article.get("article_id", ""))
+        inventory_level = str(article.get("access_status", "unknown"))
+        note = note_by_id.get(article_id)
+        if inventory_level not in READING_LEVELS:
+            invalid_access_labels.append(f"{article_id}:inventory={inventory_level}")
+        if not note:
+            continue
+        note_level = str(note.get("reading_level", "unknown"))
+        if note_level not in READING_LEVELS:
+            invalid_access_labels.append(f"{article_id}:note={note_level}")
+            continue
+        if inventory_level != note_level:
+            access_conflicts.append(
+                f"{article_id}: inventory={inventory_level}, note={note_level}"
+            )
+        sections = note.get("sections_read")
+        evidence_locations = note.get("evidence_locations")
+        if note_level == "full_text" and (
+            not isinstance(sections, list)
+            or not sections
+            or not isinstance(evidence_locations, list)
+            or not evidence_locations
+        ):
+            incomplete_access_evidence.append(
+                f"{article_id}: full_text requires sections_read and evidence_locations"
+            )
+        if note_level == "abstract_only" and (
+            not isinstance(sections, list)
+            or not any(str(item).casefold() == "abstract" for item in sections)
+        ):
+            incomplete_access_evidence.append(
+                f"{article_id}: abstract_only must record Abstract in sections_read"
+            )
+        if note_level in {"metadata_only", "failed"} and note.get("key_findings"):
+            unsupported_findings.append(
+                f"{article_id}: {note_level} record contains key findings"
+            )
     if missing_notes:
         issues.append(f"{len(missing_notes)} included articles have no reading note")
     if orphan_notes:
@@ -209,6 +271,14 @@ def audit_run(run_dir: Path) -> dict[str, Any]:
         issues.append(f"{len(out_of_window)} included articles are outside the date window")
     if invalid_dates:
         issues.append(f"{len(invalid_dates)} included articles have invalid dates")
+    if access_conflicts:
+        issues.append(f"{len(access_conflicts)} inventory/note access labels conflict")
+    if invalid_access_labels:
+        issues.append(f"{len(invalid_access_labels)} invalid or unresolved access labels")
+    if incomplete_access_evidence:
+        issues.append(f"{len(incomplete_access_evidence)} access records lack evidence")
+    if unsupported_findings:
+        issues.append(f"{len(unsupported_findings)} low-access records infer findings")
     if not discovery:
         issues.append("discovery log is empty")
     if discovery and not all(row.get("pagination_complete") is True for row in discovery):
@@ -221,6 +291,7 @@ def audit_run(run_dir: Path) -> dict[str, Any]:
         "included_articles": len(included),
         "reading_notes": len(notes),
         "reading_levels": dict(reading_levels),
+        "reading_level_total": sum(reading_levels.values()),
         "missing_notes": missing_notes,
         "orphan_notes": orphan_notes,
         "duplicate_article_ids": duplicate_article_ids,
@@ -229,6 +300,10 @@ def audit_run(run_dir: Path) -> dict[str, Any]:
         "duplicate_titles": duplicate_titles,
         "out_of_window": out_of_window,
         "invalid_dates": invalid_dates,
+        "access_conflicts": access_conflicts,
+        "invalid_access_labels": invalid_access_labels,
+        "incomplete_access_evidence": incomplete_access_evidence,
+        "unsupported_findings": unsupported_findings,
         "discovery_pages": len(discovery),
         "issues": issues,
         "passed": not issues,
@@ -236,9 +311,77 @@ def audit_run(run_dir: Path) -> dict[str, Any]:
 
 
 def cmd_audit(args: argparse.Namespace) -> int:
-    result = audit_run(Path(args.run_dir).resolve())
+    result = audit_run(Path(args.run_dir).resolve(), final=args.final)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 1 if args.strict and not result["passed"] else 0
+
+
+def markdown_cell(value: Any) -> str:
+    return str(value or "").replace("|", "\\|").replace("\r", " ").replace("\n", " ")
+
+
+def cmd_ledger(args: argparse.Namespace) -> int:
+    run_dir = Path(args.run_dir).resolve()
+    inventory = read_jsonl(run_dir / "inventory.jsonl")
+    notes = read_jsonl(run_dir / "reading-notes.jsonl")
+    included = [row for row in inventory if row.get("status") == "included"]
+    notes_by_id = {
+        str(row.get("article_id", "")): row
+        for row in notes
+        if str(row.get("article_id", ""))
+    }
+    rows = []
+    counts: Counter[str] = Counter()
+    for article in sorted(
+        included,
+        key=lambda row: (
+            str(row.get("canonical_date", "")),
+            str(row.get("title", "")).casefold(),
+        ),
+    ):
+        article_id = str(article.get("article_id", ""))
+        note = notes_by_id.get(article_id, {})
+        level = str(note.get("reading_level", article.get("access_status", "unknown")))
+        counts[level] += 1
+        label = ACCESS_LABELS.get(level, "[未标注]")
+        doi = normalized_doi(article.get("doi"))
+        source_url = note.get("source_url") or article.get("access_url") or article.get("url")
+        rows.append(
+            [
+                label,
+                article.get("canonical_date", ""),
+                article.get("article_type", ""),
+                article.get("title", ""),
+                doi,
+                source_url,
+                article_id,
+            ]
+        )
+
+    lines = [
+        "# Article access ledger",
+        "",
+        (
+            f"Included: **{len(included)}** · "
+            f"[全文] **{counts['full_text']}** · "
+            f"[摘要] **{counts['abstract_only']}** · "
+            f"[仅元数据] **{counts['metadata_only']}** · "
+            f"[访问失败] **{counts['failed']}**"
+        ),
+        "",
+        "| # | 访问层级 | 日期 | 类型 | 标题 | DOI | 实际访问来源 | Article ID |",
+        "|---:|---|---|---|---|---|---|---|",
+    ]
+    for index, row in enumerate(rows, 1):
+        lines.append(
+            "| "
+            + " | ".join([str(index), *(markdown_cell(value) for value in row)])
+            + " |"
+        )
+    output = Path(args.output).resolve() if args.output else run_dir / "access-ledger.md"
+    output.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(str(output))
+    return 0
 
 
 def cmd_metrics(args: argparse.Namespace) -> int:
@@ -329,12 +472,24 @@ def build_parser() -> argparse.ArgumentParser:
     audit_parser = subparsers.add_parser("audit", help="Audit inventory and notes")
     audit_parser.add_argument("run_dir")
     audit_parser.add_argument("--strict", action="store_true")
+    audit_parser.add_argument(
+        "--final",
+        action="store_true",
+        help="Also require merged topics after inductive coding",
+    )
     audit_parser.set_defaults(func=cmd_audit)
 
     metrics_parser = subparsers.add_parser("metrics", help="Compute topic metrics")
     metrics_parser.add_argument("run_dir")
     metrics_parser.add_argument("--output")
     metrics_parser.set_defaults(func=cmd_metrics)
+
+    ledger_parser = subparsers.add_parser(
+        "ledger", help="Generate the mandatory article-level access table"
+    )
+    ledger_parser.add_argument("run_dir")
+    ledger_parser.add_argument("--output")
+    ledger_parser.set_defaults(func=cmd_ledger)
     return parser
 
 
